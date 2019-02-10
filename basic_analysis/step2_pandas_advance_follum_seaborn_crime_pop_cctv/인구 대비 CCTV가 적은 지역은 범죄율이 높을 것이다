@@ -1,0 +1,170 @@
+[[가설 : 인구 대비 CCTV가 적은 지역은 범죄율이 높을 것이다]]
+
+1. 데이터 수집
+- 범죄 통계 데이터 수집
+- 서울시 관서별 5대 범죄 현황
+> https://www.data.go.kr/dataset/3075835/fileData.do
+> 2016년.csv를 data 폴더에 이동, 한글 제목 문제가 발생할 수 있으므로 2016.csv로 변경
+- 데이터 확인
+> 구분 column =>310개 데이터 = 10세트 * 31(관할서)
+    자치구는 총 25개 -> 자치구에 관할서가 하나를 초과하는 경우가 있다.
+    -> 구분값 ->경찰서 풀 네임 생성 -> 주소 획득(지오코더 : 구글(유료),카카오API활용) -> 자치구가 주소안에 표시 
+    -> 자치구값획득 -> step1의 key인 자치구와 머지 가능해짐.
+> 죄종 -> 5대 범죄가 2번씩 세트로 나온다. : 5(범죄) * 2(발생/검거) = 10
+> 발생 검거 -> 2개 반복(발생/검거) -> 발생에 대한 5대 범죄 통계, 검거에 대한 5대 범죄 통계
+ -> 관할서 별로 집계 -> 자치구별로 집계 
+> 검수 -> 정수값
+> 데이터를 가공, 정제해서 원하는 통계 분석을 위한 형태로 가기 위해서 필요한 기술
+ => 데이터 병합 : concat(), merge()
+ => 피벗테이블 : pivot_table()
+ 
+ 2. 추가 설치 및 업데이트
+ > pip install folium
+ 머신 러닝 라이브러리 업그레이드
+ > pip install scikit-learn -- update
+ > pip install scipy -- update
+ 
+ 3. 지역명으로 위치 검색 처리
+ 
+ -dev.kakao.com에 가입
+ -애플리케이션 생성
+ -restful 키 획득
+ - api는 지도 관련 사항에 가서 키워드로 장소 검색
+ - 요청 방법
+ ====== 
+ GET /v2/local/search/address.{format} HTTP/1.1
+Host: dapi.kakao.com
+Authorization: KakaoAK {app_key} 
+ ====
+ get : https://dapi.kakao.com/v2/local/search/keyword.json?query=서울 중부 경찰서&category_group_code=PO3
+ ==============================================
+-응답데이터( documents의 0번 데이터에서 address_name, y, x, place_name를 취한다. 
+단 place_name이 온전히 검색어와 일치할 경우만 해당된다.(통상 0번 데이터)
+================================================
+{
+    "documents": [
+        {
+            "address_name": "서울 중구 저동2가 62-1",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서",
+            "distance": "",
+            "id": "11151738",
+            "phone": "182",
+            "place_name": "서울중부경찰서",
+            "place_url": "http://place.map.daum.net/11151738",
+            "road_address_name": "서울 중구 수표로 27",
+            "x": "126.98959193048435",
+            "y": "37.563620722687844"
+        },
+        {
+            "address_name": "서울 중구 을지로3가 291-50",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서 > 파출소",
+            "distance": "",
+            "id": "21268201",
+            "phone": "02-2266-2404",
+            "place_name": "서울중부경찰서 을지로3가파출소",
+            "place_url": "http://place.map.daum.net/21268201",
+            "road_address_name": "서울 중구 충무로 56-1",
+            "x": "126.99286493571154",
+            "y": "37.56620864804315"
+        },
+        {
+            "address_name": "서울 중구 을지로5가 72-1",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서 > 지구대",
+            "distance": "",
+            "id": "8528186",
+            "phone": "02-2279-1908",
+            "place_name": "서울중부경찰서 을지지구대",
+            "place_url": "http://place.map.daum.net/8528186",
+            "road_address_name": "서울 중구 을지로 234",
+            "x": "127.00393932989843",
+            "y": "37.56650806865062"
+        },
+        {
+            "address_name": "서울 중구 장충동2가 197-34",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서 > 파출소",
+            "distance": "",
+            "id": "8050461",
+            "phone": "",
+            "place_name": "서울중부경찰서 장충파출소",
+            "place_url": "http://place.map.daum.net/8050461",
+            "road_address_name": "서울 중구 동호로 261",
+            "x": "127.00480828177658",
+            "y": "37.55875233220571"
+        },
+        {
+            "address_name": "서울 중구 약수동 844-3",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서 > 지구대",
+            "distance": "",
+            "id": "9111102",
+            "phone": "02-2234-8112",
+            "place_name": "서울중부경찰서 약수지구대",
+            "place_url": "http://place.map.daum.net/9111102",
+            "road_address_name": "서울 중구 동호로5길 15",
+            "x": "127.0123811614773",
+            "y": "37.55217464886805"
+        },
+        {
+            "address_name": "서울 중구 신당동 100-1",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서 > 파출소",
+            "distance": "",
+            "id": "21268204",
+            "phone": "",
+            "place_name": "서울중부경찰서 신당파출소",
+            "place_url": "http://place.map.daum.net/21268204",
+            "road_address_name": "서울 중구 다산로 248",
+            "x": "127.01638984949119",
+            "y": "37.565051159146165"
+        },
+        {
+            "address_name": "서울 중구 신당동 250-10",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서 > 지구대",
+            "distance": "",
+            "id": "10487492",
+            "phone": "",
+            "place_name": "서울중부경찰서 광희지구대",
+            "place_url": "http://place.map.daum.net/10487492",
+            "road_address_name": "서울 중구 퇴계로 375-1",
+            "x": "127.01340174502059",
+            "y": "37.565249715229605"
+        },
+        {
+            "address_name": "서울 중구 저동2가 62-1",
+            "category_group_code": "PO3",
+            "category_group_name": "공공기관",
+            "category_name": "사회,공공기관 > 행정기관 > 경찰서",
+            "distance": "",
+            "id": "10795753",
+            "phone": "",
+            "place_name": "중부경찰서 민원봉사실",
+            "place_url": "http://place.map.daum.net/10795753",
+            "road_address_name": "서울 중구 수표로 27",
+            "x": "126.99002655182646",
+            "y": "37.563674825136786"
+        }
+    ],
+    "meta": {
+        "is_end": true,
+        "pageable_count": 8,
+        "same_name": {
+            "keyword": "서울 중부 경찰서",
+            "region": [],
+            "selected_region": ""
+        },
+        "total_count": 8
+    }
+}
+ 

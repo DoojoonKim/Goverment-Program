@@ -1,0 +1,29 @@
+step1) 수집할 모든 목록 띄우기
+past_count = 0
+# 머무르는 지점 동안은 종료 되면 안됨 
+iter_num = 0
+while True:
+    driver.execute_script('''
+    window.scrollBy(0,4000)# 이거 숫자가 생각보다 많이 못내려 간다.
+    ''') # 다 안내려 가는 모습이 좀 보이더라. 그래서 머무르는 지점이 있을 것이다.
+    time.sleep(1)
+    
+    if getVideoCount() == past_count:
+        iter_num+=1
+        
+
+    if iter_num > 4:    
+        break
+        
+    if getVideoCount() > past_count:
+        past_count = getVideoCount()
+        
+print('결과 갯수:',getVideoCount())
+
+step2)긁을 대상 선정
+step3)긁기
+예외처리: 유튜브 같은 경우 패턴이 일정하지 않은 경우가 있다.
+예를 들면 좋아요, 싫어요가 0이면 None으로 표기된다거나,
+해시 태그가 없는 경우가 있다.(더많지 암)
+step4)클래스에 저장
+step5)DB에 저장.
